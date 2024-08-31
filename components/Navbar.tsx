@@ -3,7 +3,7 @@ import React from 'react'
 import { useWallet } from "@solana/wallet-adapter-react";
 import axios from "axios"
 import {useRouter} from "next/navigation"
-import { useWalletModal } from "@solana/wallet-adapter-react-ui";
+import { useWalletModal, WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 export const runtime = "edge"
 
 function Navbar() {
@@ -57,6 +57,7 @@ function Navbar() {
         onClick={() => {
           if(!publicKey) {
             alert("No Wallet connected")
+            return
           }
           signAndSend("signin");
         }}
@@ -80,6 +81,7 @@ function Navbar() {
      onClick={() => {
       if(!publicKey) {
         alert("No Wallet connected")
+        return
       }
       signAndSend("signup");
     }}
@@ -94,23 +96,11 @@ function Navbar() {
     >
       Sign up
     </button>
-    <button 
-    onClick={() => {
-      setModalVisible(true)
-    }
-    }
-      className="
-        bg-blue-500 
-        text-white
-        font-bold 
-        py-2 
-        px-4 
-        rounded
-      "
-
-    >
-     {publicKey ? `${publicKey.toString().slice(0,4) + "..." + publicKey.toString().slice(38, -1)}` :"Select Wallet"}
-    </button>
+    <WalletMultiButton
+      style={{
+        backgroundColor: "#3B82F6"
+      }}
+    />
             
         </div>
     </div>
