@@ -18,6 +18,9 @@ pages_build_output_dir = ".vercel/output/static"
 # - https://developers.cloudflare.com/pages/functions/bindings/#secrets
 # [vars]
 # MY_VARIABLE = "production_value"
+[vars]
+DATABASE_URL = "prisma://accelerate.prisma-data.net/?api_key=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcGlfa2V5IjoiNzA0NjFjNzYtNTg0Yy00MzM5LWI2Y2YtYWYyYmFhY2Y0NWM4IiwidGVuYW50X2lkIjoiOGM0YjI4OWIxMjE2MmFhOWRmOWE5YzEyODZiYWIyOWYwZDRhYmY3NDRkNTg0Y2FhYTM0NmM1NDU0NzE2MGY0MyIsImludGVybmFsX3NlY3JldCI6ImM0MGNmYzk1LTUxMDgtNDM4Mi04YmU5LWI5M2Q1ODJhNzM5MyJ9.CxP3zO_BJVIAlkFNpgaPm7ylK-FSy-j-eyyWeNTUjlk"
+DIRECT_URL = "postgresql://neondb_owner:bwHQSOio52KN@ep-steep-poetry-a1rgw6vr.ap-southeast-1.aws.neon.tech/neondb?sslmode=require"
 
 # Bind the Workers AI model catalog. Run machine learning models, powered by serverless GPUs, on Cloudflare’s global network
 # Docs: https://developers.cloudflare.com/pages/functions/bindings/#workers-ai
