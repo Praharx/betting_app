@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import axios from "axios"
+import Modal from './animata/overlay/modal';
 
 interface BetCardProps {
   question: string;
@@ -9,6 +10,8 @@ interface BetCardProps {
   totalBet: number;
   yesVotes: number;
   noVotes: number;
+  isLogged: any;
+  setIsLogged: any
 }
 export const runtime = "edge"
 
@@ -49,29 +52,38 @@ const GaugeIcon: React.FC<{ chance: number }> = ({ chance }) => {
   );
 };
 
-const BetCard: React.FC<BetCardProps> = ({ question, chance, totalBet, yesVotes, noVotes }) => {
+const BetCard: React.FC<BetCardProps> = ({ question, chance, totalBet, yesVotes, noVotes, isLogged, setIsLogged }) => {
+  const [isOpen, setIsOpen] = useState(false);
   const [betAmount, setBetAmount] = useState<number>(100);
   const [odds, setOdds] = useState<number>(150);
-
+  
   async function onClickBet(bet: string) {
-    try {const response = await axios.post(`${window.location.origin}/api/setBlink`, {
+
+    try {
+    const response = await axios.post(`${window.location.origin}/api/setBlink`, {
       amount: betAmount,
       team: bet
     }, {
       withCredentials: true
     })
 
-    if(!response.data.success) {
-      alert(response.data.msg)
+    console.log("Status: ", response.status)
+ 
+    if(!response.data.success) { 
+      alert(response.data.msg);
       return
     }
 
     alert("Successfully submitted bet!")
+} catch (err) {
+  alert("Some internal error occured")
+  return
+}
+  
+  }
 
-    } catch (err) {
-      console.log(err);
-      alert("Some error occured")
-    }
+  function onClickModal() {
+    setIsOpen(true)
   }
 
   return (
@@ -141,17 +153,18 @@ const BetCard: React.FC<BetCardProps> = ({ question, chance, totalBet, yesVotes,
       <div className="flex justify-between space-x-2">
         <button
           className="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-3 rounded-full text-sm transition duration-300 ease-in-out transform hover:scale-105"
-          onClick={() => onClickBet('Miami')}
+          onClick={() => (isLogged ? onClickBet('Miami') : onClickModal())}
         >
           Miami
         </button>
         <button
           className="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-3 rounded-full text-sm transition duration-300 ease-in-out transform hover:scale-105"
-          onClick={() => onClickBet('NYC')}
+          onClick={() => (isLogged ? onClickBet('NYC') : onClickModal())}
         >
           NYC
         </button>
       </div>
+      <Modal isOpen={isOpen} setIsLogged={setIsLogged} isLogged={isLogged} setIsOpen={setIsOpen}/>
     </div>
   );
 };

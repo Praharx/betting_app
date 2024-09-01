@@ -42,12 +42,14 @@ const betData: BetCardProps[] = [
   // Add more bet data as needed to see the grid effect
 ];
 
-const BetCardGrid: React.FC = () => {
+const BetCardGrid = ({isLogged, setIsLogged}: {isLogged: any, setIsLogged: any}) => {
   return (
     <div className="container mx-auto p-4">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {betData.map((bet, index) => (
           <BetCard
+            isLogged={isLogged}
+            setIsLogged={setIsLogged}
             key={index}
             question={bet.question}
             chance={bet.chance}

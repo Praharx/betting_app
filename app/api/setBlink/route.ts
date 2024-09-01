@@ -2,16 +2,18 @@ import {NextRequest, NextResponse} from "next/server"
 import {cookies} from 'next/headers'
 import * as jose from "jose"
 import {prisma} from "@/app/utils"
-
+ 
 export const runtime = "edge"
 
 export const POST = async (req: NextRequest) => {
     const {amount, team} : {amount: number, team: string} = await req.json()
-    try{const secret = new TextEncoder().encode(
-        'something',
-      )
+    try{const secret = new TextEncoder().encode('something')
     const token = cookies().get('token') 
-    if (!token) NextResponse.json({msg: "No token provided"})
+    console.log(token)
+    if (!token) {
+        return NextResponse.json({msg: "No token provided"})
+    }
+    
     const {payload} = await jose.jwtVerify(token?.value as string, secret)
     
     await prisma.betGame.create({
@@ -30,7 +32,7 @@ export const POST = async (req: NextRequest) => {
 
     } catch(err) {
         console.log(err)
-        return NextResponse.json({msg: "Internal server error"})
+        return NextResponse.json({msg: "Internal server error"}, {status: 403})
     }
 
 }

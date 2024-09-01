@@ -18,7 +18,7 @@ export const GET = async (req: NextRequest) => {
             select: {
                 availableAmount: true,
                 team_user: true,
-                userId: true,
+                userId: true, 
                 id: true
             }
         }

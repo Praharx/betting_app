@@ -1,15 +1,38 @@
 'use client'
-import React from 'react'
+import React, {useState, useEffect} from 'react'
 import { useWallet } from "@solana/wallet-adapter-react";
 import axios from "axios"
 import {useRouter} from "next/navigation"
 import { useWalletModal, WalletMultiButton } from "@solana/wallet-adapter-react-ui";
+import Cookies from "js-cookie";
+
 export const runtime = "edge"
 
-function Navbar() {
+function Navbar({setIsLogged} : {setIsLogged: any}) {
   const router = useRouter()
   const {connect, publicKey, signMessage} = useWallet();
   const { setVisible: setModalVisible } = useWalletModal();
+  const [buttonText, setButtonText] = useState({
+    button1: "Log in",
+    button2: "Sign in"
+  })
+
+  useEffect(() => {
+    const cookie = Cookies.get("token")
+    if (cookie) {
+      setButtonText({
+        button1: "Log In",
+        button2: "Sign out"
+      })
+    } else {
+      setButtonText({
+        button1: "Log In",
+        button2: "Sign in"
+      })
+    }
+  })
+
+  const cookie = Cookies.get("token");
 
   async function signAndSend(route: string) {
     try {
@@ -33,6 +56,7 @@ function Navbar() {
         return;
       }
       alert(route == "signin" ? "Signed in successfully" : "Signed up successfully");
+      setIsLogged(true)
     } catch (err) {
       alert("Unable to verify User");
       return;
@@ -75,7 +99,7 @@ function Navbar() {
       "
         
     >
-      Log in
+      {buttonText.button1}
     </button>
     <button 
      onClick={() => {
@@ -83,7 +107,17 @@ function Navbar() {
         alert("No Wallet connected")
         return
       }
-      signAndSend("signup");
+      if (cookie) {
+        Cookies.remove("token")
+        setIsLogged(false)
+        setButtonText({
+          button1: "Log IN",
+          button2: "Sign up"
+        })
+      }
+      else {
+        signAndSend("signup");
+      }
     }}
       className="
         bg-blue-500 
@@ -94,7 +128,7 @@ function Navbar() {
         rounded
       "
     >
-      Sign up
+      {buttonText.button2}
     </button>
     <WalletMultiButton
       style={{
