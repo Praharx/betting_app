@@ -13,18 +13,11 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id Int @id@default(autoincrement())
-  address String
-  betGame BetGame[] 
-}
 
 model BetGame {
   id  String @id@default(uuid())
   betAmount Int
   team_user  String
   availableAmount Int
-  userId Int
-  userRel User @relation(fields: [userId],references: [id])
-
+  betterAddress String
 }

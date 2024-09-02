@@ -1,170 +1,222 @@
-'use client'
-
-import React, { useState } from 'react';
-import axios from "axios"
-import Modal from './animata/overlay/modal';
+import React, { useState } from "react";
+import { useWallet } from "@solana/wallet-adapter-react";
+import axios from "axios";
 
 interface BetCardProps {
   question: string;
   chance: number;
-  totalBet: number;
-  yesVotes: number;
-  noVotes: number;
-  isLogged: any;
-  setIsLogged: any
+  description: String;
+  sideA: String;
+  sideB: String;
+  setErrorText: (text: string) => void;
+  setBlinkCreate: any;
 }
-export const runtime = "edge"
 
-const GaugeIcon: React.FC<{ chance: number }> = ({ chance }) => {
-  const radius = 20;
-  const circumference = 2 * Math.PI * radius;
+class OddsCalculator {
+  private betAmount: number;
+
+  constructor(betAmount: number) {
+    this.betAmount = betAmount;
+  }
+
+  // Calculate implied probability from American odds
+  americanToImpliedProbability(americanOdds: number): number {
+    if (americanOdds > 0) {
+      return 100 / (americanOdds + 100);
+    } else {
+      return Math.abs(americanOdds) / (Math.abs(americanOdds) + 100);
+    }
+  }
+
+  // Calculate payout based on American odds
+  calculatePayout(americanOdds: number): {
+    toWin: number;
+    totalPayout: number;
+  } {
+    let toWin: number;
+    if (americanOdds > 0) {
+      toWin = (this.betAmount * americanOdds) / 100;
+    } else {
+      toWin = (this.betAmount * 100) / Math.abs(americanOdds);
+    }
+    const totalPayout = this.betAmount + toWin;
+    return { toWin, totalPayout };
+  }
+}
+
+const SemicircleGauge: React.FC<{ chance: number }> = ({ chance }) => {
+  const radius = 50;
+  const circumference = Math.PI * radius;
   const progress = ((100 - chance) / 100) * circumference;
 
   return (
-    <div className="relative w-10 h-10">
-      <svg className="absolute w-20 h-20 -top-5 -right-5 transform -rotate-90" viewBox="0 0 100 100">
-        <circle
-          className="text-gray-200"
+    <div className="relative w-20 h-12">
+      <svg className="w-full h-full" viewBox="0 0 100 50">
+        <path
+          d="M5 45 A 40 40 0 0 1 95 45"
+          fill="none"
+          stroke="#e5e7eb"
           strokeWidth="10"
-          stroke="currentColor"
-          fill="transparent"
-          r={radius}
-          cx="50"
-          cy="50"
         />
-        <circle
-          className="text-blue-600 transition-all duration-500 ease-in-out"
+        <path
+          d="M5 45 A 40 40 0 0 1 95 45"
+          fill="none"
+          stroke="#3b82f6"
           strokeWidth="10"
           strokeDasharray={circumference}
           strokeDashoffset={progress}
           strokeLinecap="round"
-          stroke="currentColor"
-          fill="transparent"
-          r={radius}
-          cx="50"
-          cy="50"
         />
       </svg>
-      <div className="absolute inset-0 flex items-center justify-center">
-        <span className="text-xs font-bold text-gray-700">{chance}%</span>
+      <div className="absolute inset-x-0 bottom-0 flex flex-col items-center justify-center">
+        <span className="text-sm font-bold text-gray-700 -mt-[1rem]">
+          {chance}%
+        </span>
+        <div className="text-xs font-semibold text-gray-400 ">chance</div>
       </div>
     </div>
   );
 };
 
-const BetCard: React.FC<BetCardProps> = ({ question, chance, totalBet, yesVotes, noVotes, isLogged, setIsLogged }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [betAmount, setBetAmount] = useState<number>(100);
-  const [odds, setOdds] = useState<number>(150);
-  
-  async function onClickBet(bet: string) {
+const BetCard: React.FC<BetCardProps> = ({
+  question,
+  chance,
+  description,
+  sideA,
+  sideB,
+  setErrorText,
+  setBlinkCreate,
+}) => {
+  const [showInputs, setShowInputs] = useState(false);
+  const [amount, setAmount] = useState(100);
+  const [odds, setOdds] = useState(150);
+  const [winAmount, setWinAmount] = useState(150);
+  const [side, setSide] = useState<String| null>(null);
+  const { publicKey } = useWallet();
 
-    try {
-    const response = await axios.post(`${window.location.origin}/api/setBlink`, {
-      amount: betAmount,
-      team: bet
-    }, {
-      withCredentials: true
-    })
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newAmount = parseFloat(e.target.value);
+    setAmount(newAmount);
+    calculateWinAmount(newAmount, odds);
+  };
 
-    console.log("Status: ", response.status)
- 
-    if(!response.data.success) { 
-      alert(response.data.msg);
-      return
-    }
+  const handleOddsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newOdds = parseFloat(e.target.value);
+    setOdds(newOdds);
+    calculateWinAmount(amount, newOdds);
+  };
 
-    alert("Successfully submitted bet!")
-} catch (err) {
-  alert("Some internal error occured")
-  return
-}
-  
-  }
-
-  function onClickModal() {
-    setIsOpen(true)
-  }
+  const calculateWinAmount = (betAmount: number, americanOdds: number) => {
+    const calculator = new OddsCalculator(betAmount);
+    const payout = calculator.calculatePayout(americanOdds);
+    setWinAmount(payout.toWin);
+  };
 
   return (
-    <div className="bg-white p-4 rounded-xl shadow-lg w-full space-y-4 flex flex-col justify-between h-full">
-      <div className="flex items-start justify-between">
-        <h2 className="text-lg font-bold text-gray-800 flex-grow pr-2">{question}</h2>
-        <GaugeIcon chance={chance} />
+    <div className="w-full max-w-md mx-auto bg-gray-200 shadow-md rounded-lg overflow-hidden h-[280px] flex flex-col">
+      <div className="p-4 border-b flex justify-between items-center">
+        <h2 className="text-sm font-mono text-black">{question}</h2>
+        <SemicircleGauge chance={chance} />
       </div>
-      
-      <div className="flex justify-between items-center text-xs text-gray-600">
-        <div className="flex items-center">
-          <svg className="w-4 h-4 mr-1" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
-            <path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-          </svg>
-          <span className="font-semibold">${totalBet.toLocaleString()}</span>
-        </div>
-        <div className="flex space-x-2">
-          <div className="flex items-center">
-            <svg className="w-4 h-4 mr-1 text-green-500" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
-              <path d="M5 13l4 4L19 7"></path>
-            </svg>
-            <span className="font-semibold">{yesVotes}</span>
+      <div className="p-4 flex-grow flex flex-col ">
+        {!showInputs ? (
+          <div className="flex flex-col h-[90%] justify-between">
+            <div className="text-sm h-[40%] text-black">{description}</div>
+
+            <div className="flex space-x-4">
+              <button
+                onClick={() => {
+                  setSide(sideA);
+                  setShowInputs(true);
+                }}
+                className="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded"
+              >
+                {sideA}
+              </button>
+              <button
+                onClick={() => {
+                  setSide(sideB);
+                  setShowInputs(true);
+                }}
+                className="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded"
+              >
+                {sideB}
+              </button>
+            </div>
           </div>
-          <div className="flex items-center">
-            <svg className="w-4 h-4 mr-1 text-red-500" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
-              <path d="M6 18L18 6M6 6l12 12"></path>
-            </svg>
-            <span className="font-semibold">{noVotes}</span>
+        ) : (
+          <div className="">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                Amount
+              </label>
+              <input
+                type="number"
+                value={amount}
+                onChange={handleAmountChange}
+                placeholder="Amount"
+                className="w-full p-2 border border-gray-300 bg-gray-100 rounded-md text-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-400"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                Odds
+              </label>
+              <input
+                type="number"
+                value={odds}
+                onChange={handleOddsChange}
+                placeholder="Odds"
+                className="w-full p-2 border border-gray-300 bg-gray-100 rounded-md text-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-400"
+                step="0.01"
+              />
+            </div>
+            <button
+              onClick={async () => {
+                if (!(amount || odds || winAmount)) {
+                  alert("Put all the appropriate amounts please");
+                  return;
+                }
+                if(!publicKey) {
+                  setErrorText("Please connect your wallet before creating a bet")
+                  return 
+                }
+                try {
+                  const response = await axios.post(
+                    `${window.location.origin}/api/setBlink`,
+                    {
+                      betAmount: amount,
+                      payout: winAmount,
+                      address: publicKey,
+                      side,
+                    }
+                  );
+
+                  if (!response.data.success) {
+                    alert("Please provide valid inputs");
+                    return;
+                  }
+
+                  alert(response.data.msg);
+                  setBlinkCreate((prevVal: any) => prevVal + 1);
+                } catch (err) {
+                  alert("Couldn't create a blink, please try again later");
+                }
+              }}
+              disabled={amount == 0 || odds == 0 || !amount || !odds}
+              className={`w-full ${
+                side === sideA
+                  ? "bg-green-500 hover:bg-green-600"
+                  : "bg-red-500 hover:bg-red-600"
+              } text-white font-bold -py-1  rounded`}
+            >
+              {side}
+              <br />
+              {winAmount ? `To win ${winAmount.toFixed(2)}` : ""}
+            </button>
           </div>
-        </div>
+        )}
       </div>
-      
-      {/* Input fields for Amount and Odds */}
-      <div className="space-y-2">
-        <div className="flex flex-col">
-          <label className="text-sm font-medium text-gray-700">Amount</label>
-          <input
-            type="number"
-            value={betAmount ? betAmount : 0}
-            onChange={(e) => {
-              if (Number(e.target.value) <= 0){
-                setBetAmount(0)
-                return
-              }
-              setBetAmount(Number(e.target.value))}}
-            className="mt-1 p-2 border border-gray-300 rounded-md text-black focus:ring-blue-500 focus:border-blue-500"
-            placeholder="Enter amount"
-          />
-        </div>
-        <div className="flex flex-col">
-          <label className="text-sm font-medium text-gray-700">Odds</label>
-          <input
-            type="number"
-            value={odds ? odds : 0}
-            onChange={(e) => {
-              if (Number(e.target.value) <= 0){
-                setOdds(0)
-                return
-              }
-              setOdds(Number(e.target.value))}}
-            className="mt-1 p-2 border border-gray-300 rounded-md text-black focus:ring-blue-500 focus:border-blue-500"
-            placeholder="Enter odds"
-          />
-        </div>
-      </div>
-      
-      <div className="flex justify-between space-x-2">
-        <button
-          className="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-3 rounded-full text-sm transition duration-300 ease-in-out transform hover:scale-105"
-          onClick={() => (isLogged ? onClickBet('Miami') : onClickModal())}
-        >
-          Miami
-        </button>
-        <button
-          className="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-3 rounded-full text-sm transition duration-300 ease-in-out transform hover:scale-105"
-          onClick={() => (isLogged ? onClickBet('NYC') : onClickModal())}
-        >
-          NYC
-        </button>
-      </div>
-      <Modal isOpen={isOpen} setIsLogged={setIsLogged} isLogged={isLogged} setIsOpen={setIsOpen}/>
     </div>
   );
 };

@@ -6,27 +6,22 @@ import {prisma} from "@/app/utils"
 export const runtime = "edge"
 
 export const POST = async (req: NextRequest) => {
-    const {amount, team} : {amount: number, team: string} = await req.json()
-    try{const secret = new TextEncoder().encode('something')
-    const token = cookies().get('token') 
-    console.log(token)
-    if (!token) {
-        return NextResponse.json({msg: "No token provided"})
+    const {address, payout, betAmount, side} : {side: string, address: string, payout: number, betAmount: number} = await req.json()
+    if (!(address || payout || betAmount || side)) {
+        return NextResponse.json({msg: "Invalid Inputs"})
     }
-    
-    const {payload} = await jose.jwtVerify(token?.value as string, secret)
-    
+    try{    
     await prisma.betGame.create({
         data: {
-            availableAmount: amount,
-            team_user: team,
-            userId: payload.userId as number,
-            betAmount: amount,
+            availableAmount: payout,
+            team_user: side,
+            betAmount: betAmount,
+            betterAddress: address
         }
     })
     
     return NextResponse.json({
-        msg: "Successfully created a betting blink",
+        msg: "Successfully created your Bet, feel free to share it now!",
         success: true
     })
 

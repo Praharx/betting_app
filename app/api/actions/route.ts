@@ -5,11 +5,6 @@ import {prisma} from "@/app/utils";
 
 export const runtime = "edge"
 
-interface Blink {
-    betAmount: Number,
-    team_user: String
-}
-
 export async function GET(req:NextRequest){
 
     const { searchParams } = req.nextUrl;
@@ -22,7 +17,6 @@ export async function GET(req:NextRequest){
             betAmount: true,
             team_user: true,
             availableAmount: true,
-            userId: true,
             id:true
         }
     })
@@ -51,7 +45,7 @@ export async function GET(req:NextRequest){
         links: {
             actions: [
                 {
-                    href: `api/actions?id=${gameBetData.id}&opponentBet={opponentBet}`,
+                    href: `/api/actions?id=${id}&opponentBet={opponentBet}&amount=${gameBetData?.availableAmount}`,
                     label: `BET on ${gameBetData?.team_user == "Miami" ? "NYC" : "Miami"}`,
                     parameters: [
                         {
@@ -64,7 +58,6 @@ export async function GET(req:NextRequest){
                     ],
             }],
         },
-        
     }
 
     return NextResponse.json(response, {
@@ -72,7 +65,69 @@ export async function GET(req:NextRequest){
     })
 }
 
-export async function OPTIONS(req: Request){
+export async function POST(req:NextRequest) {
+    const postRequest: ActionPostRequest = await req.json();
+    const userKey = postRequest.account;
+    const user = new PublicKey(userKey);
+    const { searchParams } = req.nextUrl;
+    const id = searchParams.get('id');
+    const amount = searchParams.get('opponentBet');
+    const betAmount = searchParams.get('amount');
+
+    const connection = new Connection(clusterApiUrl("devnet"));
+    const ix = SystemProgram.transfer({
+      fromPubkey: user,
+      toPubkey: new PublicKey("Fh3cgDq53MF2WGnZg2pKXy9cbWH3ZgGrkz4JnUDbekxH"),
+      lamports: 2
+    })
+    const tx = new Transaction();
+    tx.add(ix)
+    tx.feePayer = user;
+    const bh = (await connection.getLatestBlockhash({commitment:"finalized"})).blockhash;
+    console.log(`blockhash ${bh}`)
+    tx.recentBlockhash = bh
+    const serialTx = tx.serialize({requireAllSignatures:false,verifySignatures:false}).toString("base64");
+   
+    if (parseInt(betAmount as string) - parseInt(amount as string) < 0) {
+        return NextResponse.json({
+            transaction: serialTx,
+            message: "Failed to submit bet"
+        }, {
+            headers: ACTIONS_CORS_HEADERS,
+            status: 403
+        })
+    }
+    try {
+    await prisma.betGame.update({
+        where: {
+            id: id as string
+        },
+        data: {
+            availableAmount: {
+                decrement: parseInt(amount as string)
+            }
+        }
+    })
+    
+    const response: ActionPostResponse = {
+      transaction: serialTx,
+      message:`Submitted bet with publicKey ${userKey}`
+    }
+  
+    return NextResponse.json(response, {headers: ACTIONS_CORS_HEADERS});
+    } catch (err) {
+        console.error(err)
+        return NextResponse.json({
+            transaction: serialTx,
+            message: "Failed to participate"
+        }, {
+            headers: ACTIONS_CORS_HEADERS,
+            status: 403
+        })
+    }
+}
+
+export async function OPTIONS(req: NextRequest){
     return new Response(null,{headers: ACTIONS_CORS_HEADERS})
 }
   

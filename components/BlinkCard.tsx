@@ -2,15 +2,14 @@ import React from 'react';
 
 interface bounties{
   availableAmount: number,
-  team_user: "Miama" | "NYC",
-  userId: number,
+  team_user: String,
   id: string
 }
 
 export const runtime = "edge"
 const CyberpunkDonationCard = ({bet}: {bet: bounties}) => {
   return (
-    <a href={`https://dial.to/?action=solana-action%3A${encodeURIComponent(window.location.origin)}%2Fapi%2Factions%3Fid%3D${bet.id}&cluster=mainnet`} className="bg-gray-900 p-6 rounded-xl shadow-lg w-80 mx-auto font-sans">
+    <a href={`https://dial.to/?action=solana-action%3A${encodeURIComponent(window.location.origin)}%2Fapi%2Factions%3Fid%3D${bet.id}&cluster=devnet`} className="bg-gray-900 p-6 rounded-xl shadow-lg w-80 mx-auto font-sans">
       <div className="bg-gradient-to-r from-blue-900 to-purple-900 p-1 rounded-lg shadow-inner mb-4">
         <div className="relative">
           <img 

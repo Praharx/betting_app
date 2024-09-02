@@ -9,14 +9,13 @@ import {useState} from "react"
 export const runtime = "edge"
 
 export default function Home() {
-  const [isLogged, setIsLogged] = useState<boolean>(false)
-
+  const [blinkCreated, setBlinkCreate] = useState(0)
   return (
     <div className="min-h-screen bg-[#1D2B39]">
-      <Navbar setIsLogged={setIsLogged} />
+      <Navbar  />
       <SemiNavbar />
-      <BetCardSection setIsLogged={setIsLogged} isLogged={isLogged} />
-      <BlinkCardCollection isLogged={isLogged} setIsLogged={setIsLogged}   />
+      <BetCardSection setBlinkCreate={setBlinkCreate} />
+      <BlinkCardCollection blinkCreated={blinkCreated} />
     </div>
   );
 }
