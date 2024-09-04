@@ -9,6 +9,9 @@
 # testing
 /coverage
 
+.env
+wrangler.toml
+
 # next.js
 /.next/
 /out/

@@ -1,17 +1,8 @@
-import React, { useState } from "react";
-import { useWallet } from "@solana/wallet-adapter-react";
+import { Dispatch, SetStateAction, useState } from "react";
 import axios from "axios";
+import { useWallet } from "@solana/wallet-adapter-react";
 
-interface BetCardProps {
-  question: string;
-  chance: number;
-  description: String;
-  sideA: String;
-  sideB: String;
-  setErrorText: (text: string) => void;
-  setBlinkCreate: any;
-}
-
+// OddsCalculator remains unchanged
 class OddsCalculator {
   private betAmount: number;
 
@@ -19,7 +10,6 @@ class OddsCalculator {
     this.betAmount = betAmount;
   }
 
-  // Calculate implied probability from American odds
   americanToImpliedProbability(americanOdds: number): number {
     if (americanOdds > 0) {
       return 100 / (americanOdds + 100);
@@ -28,7 +18,6 @@ class OddsCalculator {
     }
   }
 
-  // Calculate payout based on American odds
   calculatePayout(americanOdds: number): {
     toWin: number;
     totalPayout: number;
@@ -44,6 +33,7 @@ class OddsCalculator {
   }
 }
 
+// SemicircleGauge remains unchanged
 const SemicircleGauge: React.FC<{ chance: number }> = ({ chance }) => {
   const radius = 50;
   const circumference = Math.PI * radius;
@@ -78,6 +68,16 @@ const SemicircleGauge: React.FC<{ chance: number }> = ({ chance }) => {
   );
 };
 
+interface BetCardProps {
+  question: string;
+  chance: number;
+  description: String;
+  sideA: String;
+  sideB: String;
+  setErrorText: Dispatch<SetStateAction<string | null>>;
+  setBlinkCreate: Dispatch<SetStateAction<number>>;
+}
+
 const BetCard: React.FC<BetCardProps> = ({
   question,
   chance,
@@ -89,28 +89,36 @@ const BetCard: React.FC<BetCardProps> = ({
 }) => {
   const [showInputs, setShowInputs] = useState(false);
   const [amount, setAmount] = useState(100);
-  const [odds, setOdds] = useState(150);
+  const [odds, setOdds] = useState<string>("150");
   const [winAmount, setWinAmount] = useState(150);
-  const [side, setSide] = useState<String| null>(null);
+  const [totalPayout, setTotalPayout] = useState(250);
+  const [side, setSide] = useState<String | null>(null);
   const { publicKey } = useWallet();
   const [oddConstraintText, setConstraintText] = useState<null | String>(null);
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newAmount = parseFloat(e.target.value);
     setAmount(newAmount);
-    calculateWinAmount(newAmount, odds);
+    calculateWinAmount(newAmount, Number(odds));
   };
 
   const handleOddsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newOdds = parseFloat(e.target.value);
-    setOdds(newOdds);
-    calculateWinAmount(amount, newOdds);
+    const value = e.target.value;
+    // Allow for negative numbers, decimal points, and temporary empty or '-' inputs
+    if (value === "" || value === "-" || /^-?\d*\.?\d*$/.test(value)) {
+      setOdds(value);
+      // Only calculate if we have a valid number
+      if (value !== "" && value !== "-") {
+        calculateWinAmount(amount, parseFloat(value));
+      }
+    }
   };
 
   const calculateWinAmount = (betAmount: number, americanOdds: number) => {
     const calculator = new OddsCalculator(betAmount);
     const payout = calculator.calculatePayout(americanOdds);
     setWinAmount(payout.toWin);
+    setTotalPayout(payout.totalPayout);
   };
 
   return (
@@ -160,17 +168,19 @@ const BetCard: React.FC<BetCardProps> = ({
               />
             </div>
             <div>
-              
-              <label className="block text-sm flex font-medium text-gray-700">
-                 {oddConstraintText ? <h1 className="text-black">{oddConstraintText}</h1> : "Odds"}
+              <label className="text-sm flex font-medium text-gray-700">
+                {oddConstraintText ? (
+                  <h1 className="text-black">{oddConstraintText}</h1>
+                ) : (
+                  "Odds"
+                )}
               </label>
               <input
-                type="number"
+                type="text"
                 value={odds}
                 onChange={handleOddsChange}
                 placeholder="Odds"
                 className="w-full p-2 border border-gray-300 bg-gray-100 rounded-md text-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-400"
-                step="0.01"
               />
             </div>
             <button
@@ -179,13 +189,15 @@ const BetCard: React.FC<BetCardProps> = ({
                   alert("Put all the appropriate amounts please");
                   return;
                 }
-                if(!publicKey) {
-                  setErrorText("Please connect your wallet before creating a bet")
-                  return 
+                if (!publicKey) {
+                  setErrorText(
+                    "Please connect your wallet before creating a bet"
+                  );
+                  return;
                 }
-                if (!(odds > 100 || odds < -100)){
-                  setConstraintText("Odds must be < 100 or > -100")
-                  return
+                if (!(odds > "100" || odds < "-100")) {
+                  setConstraintText("Odds must be < 100 or > -100");
+                  return;
                 }
                 try {
                   const response = await axios.post(
@@ -209,16 +221,16 @@ const BetCard: React.FC<BetCardProps> = ({
                   alert("Couldn't create a blink, please try again later");
                 }
               }}
-              disabled={amount == 0 || odds == 0 || !amount || !odds}
+              disabled={amount === 0 || odds === 0 || !amount || !odds}
               className={`w-full ${
                 side === sideA
                   ? "bg-green-500 hover:bg-green-600"
                   : "bg-red-500 hover:bg-red-600"
-              } text-white font-bold -py-1  rounded`}
+              } text-white font-bold -py-1 rounded`}
             >
               {side}
               <br />
-              {winAmount ? `To win ${winAmount.toFixed(2)}` : ""}
+              {totalPayout ? `Total Payout: ${totalPayout.toFixed(2)}` : ""}
             </button>
           </div>
         )}
