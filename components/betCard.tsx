@@ -154,7 +154,7 @@ const BetCard: React.FC<BetCardProps> = ({
             </div>
           </div>
         ) : (
-          <div className="">
+          <div className="-mt-8">
             <div>
               <label className="block text-sm font-medium text-gray-700">
                 Amount
@@ -195,8 +195,8 @@ const BetCard: React.FC<BetCardProps> = ({
                   );
                   return;
                 }
-                if (!(odds > "100" || odds < "-100")) {
-                  setConstraintText("Odds must be < 100 or > -100");
+                if (!(parseFloat(odds) > 100 || parseFloat(odds) < -100)) {
+                  setConstraintText("Odds must be greater than 100 or less than -100");
                   return;
                 }
                 try {
@@ -221,12 +221,12 @@ const BetCard: React.FC<BetCardProps> = ({
                   alert("Couldn't create a blink, please try again later");
                 }
               }}
-              disabled={amount === 0 || odds === "0" || !amount || !odds}
+              disabled={amount === 0 || parseFloat(odds) === 0 || !amount || !odds}
               className={`w-full ${
                 side === sideA
                   ? "bg-green-500 hover:bg-green-600"
                   : "bg-red-500 hover:bg-red-600"
-              } text-white font-bold -py-1 rounded`}
+              } text-white font-bold py-2 rounded mt-2`}
             >
               {side}
               <br />
