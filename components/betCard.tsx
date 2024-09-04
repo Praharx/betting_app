@@ -221,7 +221,7 @@ const BetCard: React.FC<BetCardProps> = ({
                   alert("Couldn't create a blink, please try again later");
                 }
               }}
-              disabled={amount === 0 || odds === 0 || !amount || !odds}
+              disabled={amount === 0 || odds === "0" || !amount || !odds}
               className={`w-full ${
                 side === sideA
                   ? "bg-green-500 hover:bg-green-600"
