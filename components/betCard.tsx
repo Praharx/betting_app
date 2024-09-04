@@ -93,6 +93,7 @@ const BetCard: React.FC<BetCardProps> = ({
   const [winAmount, setWinAmount] = useState(150);
   const [side, setSide] = useState<String| null>(null);
   const { publicKey } = useWallet();
+  const [oddConstraintText, setConstraintText] = useState<null | String>(null);
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newAmount = parseFloat(e.target.value);
@@ -159,8 +160,9 @@ const BetCard: React.FC<BetCardProps> = ({
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Odds
+              
+              <label className="block text-sm flex font-medium text-gray-700">
+                 {oddConstraintText ? <h1 className="text-black">{oddConstraintText}</h1> : "Odds"}
               </label>
               <input
                 type="number"
@@ -180,6 +182,10 @@ const BetCard: React.FC<BetCardProps> = ({
                 if(!publicKey) {
                   setErrorText("Please connect your wallet before creating a bet")
                   return 
+                }
+                if (!(odds > 100 || odds < -100)){
+                  setConstraintText("Odds must be < 100 or > -100")
+                  return
                 }
                 try {
                   const response = await axios.post(
